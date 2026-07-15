@@ -83,7 +83,6 @@ class HomeProxyService : AccessibilityService() {
         val className = event.className?.toString() ?: return
 
         if (packageName != TARGET_PACKAGE) {
-            // 记录非 SkyUI 的前台包名
             if (packageName != "android" && packageName != "com.android.systemui") {
                 lastForegroundPkg = packageName
             }
@@ -107,7 +106,6 @@ class HomeProxyService : AccessibilityService() {
 
         if (className != TARGET_ACTIVITY) return
 
-        // 如果上一个前台应用是 Niagara，不需要再次跳到 Niagara
         if (lastForegroundPkg == NIAGARA_PACKAGE) {
             log("already on Niagara, skip")
             return
@@ -130,8 +128,7 @@ class HomeProxyService : AccessibilityService() {
             }
             pendingLaunch = null
         }
-        val verifyDelay = AppPrefs.getDelayMs(this)
-        handler.postDelayed(pendingLaunch!!, verifyDelay)
+        handler.postDelayed(pendingLaunch!!, AppPrefs.getDelayMs(this))
     }
 
     override fun onInterrupt() {
@@ -149,11 +146,11 @@ class HomeProxyService : AccessibilityService() {
             val intent = Intent().apply {
                 setClassName(NIAGARA_PACKAGE, NIAGARA_ACTIVITY)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             }
             startActivity(intent)
             lastForegroundPkg = NIAGARA_PACKAGE
-            log("-> Niagara (no anim)")
+            log("-> Niagara")
         } catch (e: Exception) {
             log("launch fail: ${e.message}")
         }

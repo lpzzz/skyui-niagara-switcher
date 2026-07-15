@@ -93,7 +93,7 @@
                 android:layout_width="44dp"
                 android:layout_height="wrap_content"
                 android:gravity="end"
-                android:text="50ms"
+                android:text="200ms"
                 android:textSize="13sp"
                 android:textColor="?android:textColorPrimary" />
 

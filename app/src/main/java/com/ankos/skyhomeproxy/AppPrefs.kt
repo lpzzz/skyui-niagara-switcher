@@ -19,7 +19,7 @@ object AppPrefs {
 
     fun getDelayMs(context: Context): Long {
         return context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
-            .getLong(KEY_DELAY_MS, 50L)
+            .getLong(KEY_DELAY_MS, 200L)
     }
 
     fun setDelayMs(context: Context, delay: Long) {
