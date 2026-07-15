@@ -15,7 +15,6 @@ import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-import android.widget.Toast
 
 class HomeProxyService : AccessibilityService() {
 
@@ -24,7 +23,7 @@ class HomeProxyService : AccessibilityService() {
         private const val CHANNEL_ID = "sky_home_proxy"
         private const val NOTIFICATION_ID = 1
         private const val COOLDOWN_MS = 700L
-        private const val LAUNCH_DELAY_MS = 40L
+        private const val LAUNCH_DELAY_MS = 0L
         private const val TARGET_PACKAGE = "com.skyui.launcher"
         private const val TARGET_ACTIVITY =
             "com.android.launcher3.uioverrides.QuickstepLauncher"
@@ -47,13 +46,13 @@ class HomeProxyService : AccessibilityService() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "onCreate: service starting")
+        Log.d(TAG, "onCreate")
         createNotificationChannel()
         try {
             startForegroundNotification()
-            Log.d(TAG, "onCreate: foreground notification started")
+            Log.d(TAG, "foreground notification started")
         } catch (e: Exception) {
-            Log.w(TAG, "onCreate: failed to start foreground", e)
+            Log.w(TAG, "foreground notification failed", e)
         }
     }
 
@@ -62,11 +61,10 @@ class HomeProxyService : AccessibilityService() {
         val info = AccessibilityServiceInfo().apply {
             eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-            notificationTimeout = 100
+            notificationTimeout = 50
         }
         serviceInfo = info
-        Log.d(TAG, "onServiceConnected: service ready")
-        showToast("Home Proxy 已启动")
+        Log.d(TAG, "service connected, notificationTimeout=50")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -75,27 +73,21 @@ class HomeProxyService : AccessibilityService() {
         val packageName = event.packageName?.toString() ?: return
         val className = event.className?.toString() ?: return
 
-        Log.d(TAG, "onAccessibilityEvent: pkg=$packageName cls=$className")
-
         if (packageName != TARGET_PACKAGE) return
-        if (className != TARGET_ACTIVITY) {
-            Log.d(TAG, "onAccessibilityEvent: skipped cls=$className")
-            return
-        }
+        if (className != TARGET_ACTIVITY) return
 
-        Log.d(TAG, "onAccessibilityEvent: matched SkyUI Home, scheduling launch")
-        showToast("检测到 SkyUI Home")
+        Log.d(TAG, "matched SkyUI Home")
 
         val now = System.currentTimeMillis()
         if (now - lastLaunchTime < COOLDOWN_MS) {
-            Log.d(TAG, "onAccessibilityEvent: cooldown active, skipping")
+            Log.d(TAG, "cooldown, skip")
             return
         }
 
+        // 首次命中先记时间，阻止冷却期内重复触发
+        lastLaunchTime = now
+
         handler.postDelayed({
-            val recheck = System.currentTimeMillis()
-            if (recheck - lastLaunchTime < COOLDOWN_MS) return@postDelayed
-            lastLaunchTime = recheck
             launchNiagara()
         }, LAUNCH_DELAY_MS)
     }
@@ -117,17 +109,9 @@ class HomeProxyService : AccessibilityService() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             startActivity(intent)
-            Log.d(TAG, "launchNiagara: launched successfully")
-            showToast("已切换到 Niagara")
+            Log.d(TAG, "niagara launched")
         } catch (e: Exception) {
-            Log.w(TAG, "launchNiagara: failed", e)
-            showToast("无法启动 Niagara: ${e.message}")
-        }
-    }
-
-    private fun showToast(msg: String) {
-        handler.post {
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+            Log.w(TAG, "niagara launch failed", e)
         }
     }
 
