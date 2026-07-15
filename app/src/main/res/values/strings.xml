@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sky Home Proxy</string>
+    <string name="btn_enable">启用 Home Proxy</string>
+    <string name="btn_settings">无障碍设置</string>
+    <string name="status_enabled">Home Proxy 已启用</string>
+    <string name="status_disabled">Home Proxy 未启用，点击下方按钮开启</string>
+    <string name="notification_channel_name">Home Proxy 服务</string>
+    <string name="notification_channel_description">Sky Home Proxy 前台服务通知</string>
+    <string name="notification_running">Home 转发服务运行中</string>
+    <string name="desc_intro">无需 Root，无需修改默认启动器。\n\n开启无障碍服务后，上滑返回桌面时将自动切换到 Niagara Launcher，同时保持 SkyUI 的 Recent Apps 功能完全正常。</string>
+</resources>
