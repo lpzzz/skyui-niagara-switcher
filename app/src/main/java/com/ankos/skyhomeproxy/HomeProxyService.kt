@@ -9,6 +9,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.PixelFormat
+import android.view.Gravity
+import android.view.View
+import android.view.WindowManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -44,6 +48,8 @@ class HomeProxyService : AccessibilityService() {
     private var pendingLaunch: Runnable? = null
     private var seenRecents = false
     private var lastForegroundPkg = ""
+    private var maskView: View? = null
+    private var windowManager: WindowManager? = null
 
     private fun log(msg: String) {
         android.util.Log.d("HomeProxy", msg)
@@ -64,6 +70,9 @@ class HomeProxyService : AccessibilityService() {
             notificationTimeout = 50
         }
         serviceInfo = info
+
+        createMaskOverlay()
+
         val delay = AppPrefs.getDelayMs(this)
         log("connected delay=${delay}ms")
 
@@ -100,6 +109,7 @@ class HomeProxyService : AccessibilityService() {
             seenRecents = true
             pendingLaunch?.let { handler.removeCallbacks(it) }
             pendingLaunch = null
+            hideMask()
             log("recents, cancel")
             return
         }
@@ -120,6 +130,8 @@ class HomeProxyService : AccessibilityService() {
         }
 
         seenRecents = false
+        showMask()
+
         pendingLaunch?.let { handler.removeCallbacks(it) }
         pendingLaunch = Runnable {
             if (!seenRecents) {
@@ -138,6 +150,7 @@ class HomeProxyService : AccessibilityService() {
     override fun onDestroy() {
         log("onDestroy")
         handler.removeCallbacksAndMessages(null)
+        destroyMaskOverlay()
         super.onDestroy()
     }
 
@@ -151,9 +164,61 @@ class HomeProxyService : AccessibilityService() {
             startActivity(intent)
             lastForegroundPkg = NIAGARA_PACKAGE
             log("-> Niagara")
+                handler.postDelayed({ hideMask() }, 100L)
         } catch (e: Exception) {
             log("launch fail: ${e.message}")
         }
+    }
+
+    private fun createMaskOverlay() {
+        if (maskView != null) return
+        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        maskView = View(this).apply {
+            setBackgroundColor(0xFF000000.toInt())
+            alpha = 0f
+        }
+        val params = WindowManager.LayoutParams().apply {
+            type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            format = PixelFormat.TRANSLUCENT
+            flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            width = WindowManager.LayoutParams.MATCH_PARENT
+            height = WindowManager.LayoutParams.MATCH_PARENT
+            gravity = Gravity.TOP or Gravity.START
+            x = 0
+            y = 0
+        }
+        try {
+            windowManager!!.addView(maskView, params)
+            maskView!!.visibility = View.GONE
+        } catch (e: Exception) {
+            log("mask create fail: " + e.message)
+            maskView = null
+        }
+    }
+
+    private fun showMask() {
+        val view = maskView ?: return
+        view.visibility = View.VISIBLE
+        view.animate().cancel()
+        view.animate().alpha(1f).setDuration(80).start()
+    }
+
+    private fun hideMask() {
+        val view = maskView ?: return
+        view.animate().cancel()
+        view.animate().alpha(0f).setDuration(80).withEndAction {
+            view.visibility = View.GONE
+        }.start()
+    }
+
+    private fun destroyMaskOverlay() {
+        maskView?.let {
+            try { windowManager?.removeView(it) } catch (_: Exception) {}
+        }
+        maskView = null
     }
 
     private fun createNotificationChannel() {
