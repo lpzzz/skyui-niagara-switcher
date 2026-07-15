@@ -13,17 +13,15 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 
 class HomeProxyService : AccessibilityService() {
 
     companion object {
-        private const val TAG = "HomeProxyService"
         private const val CHANNEL_ID = "sky_home_proxy"
         private const val NOTIFICATION_ID = 1
         private const val COOLDOWN_MS = 700L
-        private const val VERIFY_DELAY_MS = 50L
+        private const val DEFAULT_DELAY_MS = 50L
         private const val TARGET_PACKAGE = "com.skyui.launcher"
         private const val TARGET_ACTIVITY =
             "com.android.launcher3.uioverrides.QuickstepLauncher"
@@ -37,7 +35,6 @@ class HomeProxyService : AccessibilityService() {
                 context.contentResolver,
                 Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
             ) ?: return false
-
             val colon = enabledServices.split(':')
             return colon.any { it.endsWith("HomeProxyService") }
         }
@@ -48,9 +45,14 @@ class HomeProxyService : AccessibilityService() {
     private var pendingLaunch: Runnable? = null
     private var seenRecents = false
 
+    private fun log(msg: String) {
+        android.util.Log.d("HomeProxy", msg)
+        LogBuffer.add("SVC", msg)
+    }
+
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "onCreate")
+        log("onCreate")
         createNotificationChannel()
     }
 
@@ -62,13 +64,14 @@ class HomeProxyService : AccessibilityService() {
             notificationTimeout = 50
         }
         serviceInfo = info
-        Log.d(TAG, "service connected")
+        val delay = AppPrefs.getDelayMs(this)
+        log("connected, verifyDelay=${delay}ms")
 
         try {
             startForegroundNotification()
-            Log.d(TAG, "foreground notification started")
+            log("foreground OK")
         } catch (e: Exception) {
-            Log.w(TAG, "startForeground failed, trying fallback notification", e)
+            log("foreground failed: ${e.message}")
             postFallbackNotification()
         }
     }
@@ -81,26 +84,31 @@ class HomeProxyService : AccessibilityService() {
 
         if (packageName != TARGET_PACKAGE) return
 
-        Log.d(TAG, "event: $className")
+        if (AppPrefs.isPaused(this)) {
+            if (className == TARGET_ACTIVITY || className == RECENTS_ACTIVITY) {
+                log("paused: $className")
+            }
+            return
+        }
 
-        // 如果在验证等待期间出现了 RecentsActivity，取消待执行的 launch
         if (className == RECENTS_ACTIVITY) {
             seenRecents = true
             pendingLaunch?.let { handler.removeCallbacks(it) }
             pendingLaunch = null
-            Log.d(TAG, "recents detected, cancelled pending launch")
+            log("recents, cancelled")
             return
         }
 
         if (className != TARGET_ACTIVITY) return
 
+        log("Home detected")
+
         val now = System.currentTimeMillis()
         if (now - lastLaunchTime < COOLDOWN_MS) {
-            Log.d(TAG, "cooldown")
+            log("cooldown ${now - lastLaunchTime}ms")
             return
         }
 
-        // 延迟验证：等待一段时间确认是否进入 Recents
         seenRecents = false
         pendingLaunch?.let { handler.removeCallbacks(it) }
         pendingLaunch = Runnable {
@@ -110,15 +118,16 @@ class HomeProxyService : AccessibilityService() {
             }
             pendingLaunch = null
         }
-        handler.postDelayed(pendingLaunch!!, VERIFY_DELAY_MS)
+        val verifyDelay = AppPrefs.getDelayMs(this)
+        handler.postDelayed(pendingLaunch!!, verifyDelay)
     }
 
     override fun onInterrupt() {
-        Log.d(TAG, "onInterrupt")
+        log("onInterrupt")
     }
 
     override fun onDestroy() {
-        Log.d(TAG, "onDestroy")
+        log("onDestroy")
         handler.removeCallbacksAndMessages(null)
         super.onDestroy()
     }
@@ -130,9 +139,9 @@ class HomeProxyService : AccessibilityService() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             startActivity(intent)
-            Log.d(TAG, "niagara launched")
+            log("-> Niagara")
         } catch (e: Exception) {
-            Log.w(TAG, "niagara launch failed", e)
+            log("launch fail: ${e.message}")
         }
     }
 
@@ -199,5 +208,6 @@ class HomeProxyService : AccessibilityService() {
         val manager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, notification)
+        log("fallback notification posted")
     }
 }

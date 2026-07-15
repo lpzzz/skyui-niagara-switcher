@@ -2,34 +2,120 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
     android:orientation="vertical"
-    android:padding="32dp">
+    android:padding="16dp">
 
     <TextView
         android:id="@+id/tv_status"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:text="@string/status_disabled"
-        android:textSize="16sp"
+        android:textSize="15sp"
         android:textColor="?android:textColorPrimary" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_enable"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="@string/btn_enable" />
-
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="12dp"
         android:gravity="center"
-        android:text="@string/desc_intro"
-        android:textSize="13sp"
-        android:textColor="?android:textColorSecondary"
-        android:lineSpacingExtra="4dp" />
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_service"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:text="@string/btn_enable" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_pause"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:text="暂停代理" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="验证延迟: "
+            android:textSize="14sp"
+            android:textColor="?android:textColorSecondary" />
+
+        <TextView
+            android:id="@+id/tv_delay_value"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="50ms"
+            android:textSize="14sp"
+            android:textColor="?android:textColorPrimary" />
+
+        <SeekBar
+            android:id="@+id/seek_delay"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:max="300"
+            android:progress="50" />
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:background="?android:dividerHorizontal" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_clear_log"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:text="清除日志"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:background="#F5F5F5">
+
+        <TextView
+            android:id="@+id/tv_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:textIsSelectable="true"
+            android:textSize="11sp"
+            android:typeface="monospace"
+            android:textColor="#333333"
+            android:fontFamily="monospace" />
+
+    </ScrollView>
 
 </LinearLayout>
