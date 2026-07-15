@@ -23,10 +23,12 @@ class HomeProxyService : AccessibilityService() {
         private const val CHANNEL_ID = "sky_home_proxy"
         private const val NOTIFICATION_ID = 1
         private const val COOLDOWN_MS = 700L
-        private const val LAUNCH_DELAY_MS = 0L
+        private const val VERIFY_DELAY_MS = 150L
         private const val TARGET_PACKAGE = "com.skyui.launcher"
         private const val TARGET_ACTIVITY =
             "com.android.launcher3.uioverrides.QuickstepLauncher"
+        private const val RECENTS_ACTIVITY =
+            "com.android.quickstep.RecentsActivity"
         private const val NIAGARA_PACKAGE = "bitpit.launcher"
         private const val NIAGARA_ACTIVITY = "bitpit.launcher.ui.HomeActivity"
 
@@ -43,17 +45,13 @@ class HomeProxyService : AccessibilityService() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var lastLaunchTime = 0L
+    private var pendingLaunch: Runnable? = null
+    private var seenRecents = false
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "onCreate")
         createNotificationChannel()
-        try {
-            startForegroundNotification()
-            Log.d(TAG, "foreground notification started")
-        } catch (e: Exception) {
-            Log.w(TAG, "foreground notification failed", e)
-        }
     }
 
     override fun onServiceConnected() {
@@ -64,7 +62,15 @@ class HomeProxyService : AccessibilityService() {
             notificationTimeout = 50
         }
         serviceInfo = info
-        Log.d(TAG, "service connected, notificationTimeout=50")
+        Log.d(TAG, "service connected")
+
+        try {
+            startForegroundNotification()
+            Log.d(TAG, "foreground notification started")
+        } catch (e: Exception) {
+            Log.w(TAG, "startForeground failed, trying fallback notification", e)
+            postFallbackNotification()
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -74,22 +80,37 @@ class HomeProxyService : AccessibilityService() {
         val className = event.className?.toString() ?: return
 
         if (packageName != TARGET_PACKAGE) return
-        if (className != TARGET_ACTIVITY) return
 
-        Log.d(TAG, "matched SkyUI Home")
+        Log.d(TAG, "event: $className")
 
-        val now = System.currentTimeMillis()
-        if (now - lastLaunchTime < COOLDOWN_MS) {
-            Log.d(TAG, "cooldown, skip")
+        // 如果在验证等待期间出现了 RecentsActivity，取消待执行的 launch
+        if (className == RECENTS_ACTIVITY) {
+            seenRecents = true
+            pendingLaunch?.let { handler.removeCallbacks(it) }
+            pendingLaunch = null
+            Log.d(TAG, "recents detected, cancelled pending launch")
             return
         }
 
-        // 首次命中先记时间，阻止冷却期内重复触发
-        lastLaunchTime = now
+        if (className != TARGET_ACTIVITY) return
 
-        handler.postDelayed({
-            launchNiagara()
-        }, LAUNCH_DELAY_MS)
+        val now = System.currentTimeMillis()
+        if (now - lastLaunchTime < COOLDOWN_MS) {
+            Log.d(TAG, "cooldown")
+            return
+        }
+
+        // 延迟验证：等待一段时间确认是否进入 Recents
+        seenRecents = false
+        pendingLaunch?.let { handler.removeCallbacks(it) }
+        pendingLaunch = Runnable {
+            if (!seenRecents) {
+                lastLaunchTime = System.currentTimeMillis()
+                launchNiagara()
+            }
+            pendingLaunch = null
+        }
+        handler.postDelayed(pendingLaunch!!, VERIFY_DELAY_MS)
     }
 
     override fun onInterrupt() {
@@ -120,10 +141,11 @@ class HomeProxyService : AccessibilityService() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 getString(R.string.notification_channel_name),
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = getString(R.string.notification_channel_description)
                 setShowBadge(false)
+                setSound(null, null)
             }
             val manager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -131,7 +153,7 @@ class HomeProxyService : AccessibilityService() {
         }
     }
 
-    private fun startForegroundNotification() {
+    private fun buildNotification(): Notification {
         val openIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -140,7 +162,7 @@ class HomeProxyService : AccessibilityService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(this, CHANNEL_ID)
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText(getString(R.string.notification_running))
@@ -158,7 +180,10 @@ class HomeProxyService : AccessibilityService() {
                 .setContentIntent(pendingIntent)
                 .build()
         }
+    }
 
+    private fun startForegroundNotification() {
+        val notification = buildNotification()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(
                 NOTIFICATION_ID, notification,
@@ -167,5 +192,12 @@ class HomeProxyService : AccessibilityService() {
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
+    }
+
+    private fun postFallbackNotification() {
+        val notification = buildNotification()
+        val manager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(NOTIFICATION_ID, notification)
     }
 }
