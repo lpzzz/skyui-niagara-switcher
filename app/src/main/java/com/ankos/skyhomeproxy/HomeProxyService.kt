@@ -23,7 +23,7 @@ class HomeProxyService : AccessibilityService() {
         private const val CHANNEL_ID = "sky_home_proxy"
         private const val NOTIFICATION_ID = 1
         private const val COOLDOWN_MS = 700L
-        private const val VERIFY_DELAY_MS = 150L
+        private const val VERIFY_DELAY_MS = 50L
         private const val TARGET_PACKAGE = "com.skyui.launcher"
         private const val TARGET_ACTIVITY =
             "com.android.launcher3.uioverrides.QuickstepLauncher"
