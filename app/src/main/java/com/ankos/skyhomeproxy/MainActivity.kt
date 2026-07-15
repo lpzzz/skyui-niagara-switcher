@@ -3,12 +3,13 @@ package com.ankos.skyhomeproxy
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.text.method.ScrollingMovementMethod
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,6 +22,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val handler = Handler(Looper.getMainLooper())
     private var isPaused = false
+    private var isLogTab = false
 
     private val notificationPermissionLauncher =
         registerForActivityResult(
@@ -32,7 +34,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     private val logListener: () -> Unit = {
-        handler.post { refreshLogs() }
+        handler.post { if (isLogTab) refreshLogs() }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,7 +42,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.tvLog.movementMethod = ScrollingMovementMethod()
+        binding.tabControl.setOnClickListener { switchTab(false) }
+        binding.tabLog.setOnClickListener { switchTab(true) }
 
         binding.btnService.setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -50,6 +53,7 @@ class MainActivity : AppCompatActivity() {
             isPaused = !isPaused
             AppPrefs.setPaused(this, isPaused)
             updatePauseButton()
+            LogBuffer.add("UI", if (isPaused) "已暂停" else "已恢复")
         }
 
         binding.btnClearLog.setOnClickListener {
@@ -65,6 +69,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun onStopTrackingTouch(seekBar: SeekBar) {
                 AppPrefs.setDelayMs(this@MainActivity, seekBar.progress.toLong())
+                LogBuffer.add("UI", "延迟=${seekBar.progress}ms")
             }
         })
     }
@@ -73,7 +78,6 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         updateStatus()
         refreshPrefs()
-        refreshLogs()
         LogBuffer.addListener(logListener)
         requestNotificationPermission()
     }
@@ -81,6 +85,26 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         LogBuffer.removeListener(logListener)
+    }
+
+    private fun switchTab(log: Boolean) {
+        isLogTab = log
+        val activeColor = Color.parseColor("#1A73E8")
+        val inactiveColor = Color.parseColor("#757575")
+
+        binding.tabControl.backgroundTintList = ColorStateList.valueOf(
+            if (!log) activeColor else Color.TRANSPARENT
+        )
+        binding.tabControl.setTextColor(if (!log) Color.WHITE else inactiveColor)
+        binding.tabLog.backgroundTintList = ColorStateList.valueOf(
+            if (log) activeColor else Color.TRANSPARENT
+        )
+        binding.tabLog.setTextColor(if (log) Color.WHITE else inactiveColor)
+
+        binding.tabControl.visibility = if (log) android.view.View.VISIBLE else android.view.View.VISIBLE
+        binding.tabLogContent.visibility = if (log) android.view.View.VISIBLE else android.view.View.GONE
+        binding.tabControlContent.visibility = if (log) android.view.View.GONE else android.view.View.VISIBLE
+        if (log) refreshLogs()
     }
 
     private fun requestNotificationPermission() {
@@ -120,12 +144,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshLogs() {
-        binding.tvLog.text = LogBuffer.logs.joinToString("\n")
-        val layout = binding.tvLog.layout ?: return
-        val lineCount = layout.lineCount
-        if (lineCount > 0) {
-            val scrollY = layout.getLineTop(lineCount) - binding.tvLog.height
-            if (scrollY > 0) binding.tvLog.scrollTo(0, scrollY)
-        }
+        binding.tvLog.setText(LogBuffer.logs.joinToString("\n"))
+        binding.tvLog.setSelection(binding.tvLog.text.length)
     }
 }

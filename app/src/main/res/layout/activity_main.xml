@@ -3,119 +3,171 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
-
-    <TextView
-        android:id="@+id/tv_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="@string/status_disabled"
-        android:textSize="15sp"
-        android:textColor="?android:textColorPrimary" />
+    android:padding="12dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:gravity="center"
+        android:layout_height="40dp"
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_service"
+            android:id="@+id/tab_control"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginEnd="4dp"
             style="@style/Widget.Material3.Button.TonalButton"
-            android:text="@string/btn_enable" />
+            android:text="控制"
+            android:textSize="14sp" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_pause"
+            android:id="@+id/tab_log"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:layout_marginStart="4dp"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:text="暂停代理" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="验证延迟: "
-            android:textSize="14sp"
-            android:textColor="?android:textColorSecondary" />
-
-        <TextView
-            android:id="@+id/tv_delay_value"
-            android:layout_width="48dp"
-            android:layout_height="wrap_content"
-            android:gravity="end"
-            android:text="50ms"
-            android:textSize="14sp"
-            android:textColor="?android:textColorPrimary" />
-
-        <SeekBar
-            android:id="@+id/seek_delay"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:max="300"
-            android:progress="50" />
-
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="4dp"
-        android:background="?android:dividerHorizontal" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="end"
-        android:orientation="horizontal">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_clear_log"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
             style="@style/Widget.Material3.Button.TextButton"
-            android:text="清除日志"
-            android:textSize="12sp" />
+            android:text="日志"
+            android:textSize="14sp" />
 
     </LinearLayout>
 
-    <ScrollView
+    <LinearLayout
+        android:id="@+id/tab_control_content"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="4dp"
-        android:background="#F5F5F5">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_marginTop="12dp">
 
         <TextView
-            android:id="@+id/tv_log"
+            android:id="@+id/tv_status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:textIsSelectable="true"
-            android:textSize="11sp"
-            android:typeface="monospace"
-            android:textColor="#333333"
-            android:fontFamily="monospace" />
+            android:gravity="center"
+            android:text="@string/status_disabled"
+            android:textSize="15sp"
+            android:textColor="?android:textColorPrimary" />
 
-    </ScrollView>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_service"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:text="@string/btn_enable" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_pause"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:text="暂停代理" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="验证延迟"
+                android:textSize="13sp"
+                android:textColor="?android:textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tv_delay_value"
+                android:layout_width="44dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:text="50ms"
+                android:textSize="13sp"
+                android:textColor="?android:textColorPrimary" />
+
+            <SeekBar
+                android:id="@+id/seek_delay"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:max="300" />
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:text="@string/desc_intro"
+            android:textSize="12sp"
+            android:textColor="?android:textColorSecondary"
+            android:lineSpacingExtra="3dp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/tab_log_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_marginTop="4dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_clear_log"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:text="清除"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="4dp"
+            android:fillViewport="true">
+
+            <EditText
+                android:id="@+id/tv_log"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:gravity="top"
+                android:inputType="none"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:textIsSelectable="true"
+                android:textSize="10sp"
+                android:typeface="monospace"
+                android:textColor="#333333"
+                android:background="#F0F0F0"
+                android:fontFamily="monospace" />
+
+        </ScrollView>
+
+    </LinearLayout>
 
 </LinearLayout>

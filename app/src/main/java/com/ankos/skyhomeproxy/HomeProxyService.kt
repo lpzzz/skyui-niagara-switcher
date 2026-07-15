@@ -21,7 +21,6 @@ class HomeProxyService : AccessibilityService() {
         private const val CHANNEL_ID = "sky_home_proxy"
         private const val NOTIFICATION_ID = 1
         private const val COOLDOWN_MS = 700L
-        private const val DEFAULT_DELAY_MS = 50L
         private const val TARGET_PACKAGE = "com.skyui.launcher"
         private const val TARGET_ACTIVITY =
             "com.android.launcher3.uioverrides.QuickstepLauncher"
@@ -44,6 +43,7 @@ class HomeProxyService : AccessibilityService() {
     private var lastLaunchTime = 0L
     private var pendingLaunch: Runnable? = null
     private var seenRecents = false
+    private var lastForegroundPkg = ""
 
     private fun log(msg: String) {
         android.util.Log.d("HomeProxy", msg)
@@ -65,13 +65,13 @@ class HomeProxyService : AccessibilityService() {
         }
         serviceInfo = info
         val delay = AppPrefs.getDelayMs(this)
-        log("connected, verifyDelay=${delay}ms")
+        log("connected delay=${delay}ms")
 
         try {
             startForegroundNotification()
             log("foreground OK")
         } catch (e: Exception) {
-            log("foreground failed: ${e.message}")
+            log("foreground fail: ${e.message}")
             postFallbackNotification()
         }
     }
@@ -82,7 +82,13 @@ class HomeProxyService : AccessibilityService() {
         val packageName = event.packageName?.toString() ?: return
         val className = event.className?.toString() ?: return
 
-        if (packageName != TARGET_PACKAGE) return
+        if (packageName != TARGET_PACKAGE) {
+            // 记录非 SkyUI 的前台包名
+            if (packageName != "android" && packageName != "com.android.systemui") {
+                lastForegroundPkg = packageName
+            }
+            return
+        }
 
         if (AppPrefs.isPaused(this)) {
             if (className == TARGET_ACTIVITY || className == RECENTS_ACTIVITY) {
@@ -95,13 +101,19 @@ class HomeProxyService : AccessibilityService() {
             seenRecents = true
             pendingLaunch?.let { handler.removeCallbacks(it) }
             pendingLaunch = null
-            log("recents, cancelled")
+            log("recents, cancel")
             return
         }
 
         if (className != TARGET_ACTIVITY) return
 
-        log("Home detected")
+        // 如果上一个前台应用是 Niagara，不需要再次跳到 Niagara
+        if (lastForegroundPkg == NIAGARA_PACKAGE) {
+            log("already on Niagara, skip")
+            return
+        }
+
+        log("Home detected (last=$lastForegroundPkg)")
 
         val now = System.currentTimeMillis()
         if (now - lastLaunchTime < COOLDOWN_MS) {
@@ -137,9 +149,11 @@ class HomeProxyService : AccessibilityService() {
             val intent = Intent().apply {
                 setClassName(NIAGARA_PACKAGE, NIAGARA_ACTIVITY)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
             }
             startActivity(intent)
-            log("-> Niagara")
+            lastForegroundPkg = NIAGARA_PACKAGE
+            log("-> Niagara (no anim)")
         } catch (e: Exception) {
             log("launch fail: ${e.message}")
         }
@@ -208,6 +222,5 @@ class HomeProxyService : AccessibilityService() {
         val manager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, notification)
-        log("fallback notification posted")
     }
 }
